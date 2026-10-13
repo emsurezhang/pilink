@@ -236,7 +236,7 @@ function RoleSheet({ close }: { close: () => void }) {
         </button>
         {s.roles.map((r) => (
           <button key={r.source} className={r.current ? "selected" : ""} onClick={() => void choose(r.source)}>
-            {r.title}
+            {r.alias ?? r.title}
             <div className="dim small">
               {r.source}
               {r.native ? " · 原生" : ""}

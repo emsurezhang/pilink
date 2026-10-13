@@ -121,6 +121,14 @@ export function ChatView() {
         </div>
       </header>
 
+      {s.conflict && (
+        <div className="conflict-banner">
+          ⚠️ {s.conflict}
+          <button className="mini" onClick={() => void s.reloadHistory()}>
+            重新加载
+          </button>
+        </div>
+      )}
       {/* chat-body：消息区与 FAB 的相对定位父级，使 fab 的 bottom 不依赖 composer 高度 */}
       <div className="chat-body">
         <div className="message-list" ref={listRef}>
@@ -146,7 +154,8 @@ export function ChatView() {
 function RoleBadge() {
   const s = useApp();
   const current = s.roleCurrent;
-  const label = current ? current.split("/").pop() : "Pi 默认";
+  const cur = s.roles.find((r) => r.source === current);
+  const label = cur ? (cur.alias ?? cur.title) : current ? current.split("/").pop() : "Pi 默认";
   return (
     <span className="chip role" onClick={() => SheetHost.open("role")} title={current ?? "Pi 默认系统提示词"}>
       ⚑ {label}

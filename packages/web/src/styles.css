@@ -575,3 +575,16 @@ pre.code, .markdown pre {
   padding: 4px;
 }
 .cmd-popup-notice { padding: 6px 8px 2px; }
+
+/* 同步冲突横幅（外部写入 / 缓冲失效） */
+.conflict-banner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  background: var(--warn);
+  color: #000;
+  font-size: 13px;
+}
+.conflict-banner button { padding: 2px 10px; font-size: 12px; }

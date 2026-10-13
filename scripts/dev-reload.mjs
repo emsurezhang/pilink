@@ -68,15 +68,15 @@ try {
   }
 } catch { /* pgrep 无匹配会抛错，忽略 */ }
 
-// 等待端口释放（旧进程 SIGTERM 后内核尚未回收时直接启动会 EADDRINUSE）
-const portFree = () =>
+// 等待端口释放（旧进程 SIGTERM 后内核尚未回收时直接启动会 EADDRINUSE；7788 与 7789 都要空）
+const portFree = (port) =>
   new Promise((resolve) => {
-    const s = createConnection({ host: "127.0.0.1", port: PORT });
+    const s = createConnection({ host: "127.0.0.1", port });
     s.once("connect", () => { s.end(); resolve(false); });
     s.once("error", () => { s.destroy(); resolve(true); });
   });
 for (let i = 0; i < 25; i++) {
-  if (await portFree()) break;
+  if ((await portFree(PORT)) && (await portFree(Number(process.env.PILINK_BRIDGE_PORT || 7789)))) break;
   await new Promise((r) => setTimeout(r, 200));
   if (i === 24) console.warn("  警告：端口尚未释放，仍尝试启动…");
 }

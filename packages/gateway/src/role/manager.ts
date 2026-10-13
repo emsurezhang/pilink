@@ -13,6 +13,8 @@ export interface RoleCandidate {
   /** 工作区相对路径（"Pi 默认" 项 source 为 null） */
   source: string;
   absPath: string;
+  /** 用户配置别名（.pi/roles.json），展示优先于 title */
+  alias?: string;
   title: string;
   preview: string;
   size: number;
@@ -63,6 +65,25 @@ export class RoleManager {
   private stateFile(cwd: string) {
     return join(cwd, ".pi", "pilink.json");
   }
+  /** 别名 → 定义文件路径 映射配置（.pi/roles.json，相对工作区） */
+  private aliasConfigFile(cwd: string) {
+    return join(cwd, ".pi", "roles.json");
+  }
+
+  /** 读取别名配置；无配置文件返回 null（调用方回退到目录扫描） */
+  private loadAliasConfig(cwd: string): Record<string, string> | null {
+    try {
+      if (!existsSync(this.aliasConfigFile(cwd))) return null;
+      const j = JSON.parse(readFileSync(this.aliasConfigFile(cwd), "utf8")) as Record<string, unknown>;
+      const out: Record<string, string> = {};
+      for (const [alias, p] of Object.entries(j)) {
+        if (typeof p === "string" && alias.trim()) out[alias.trim()] = p;
+      }
+      return out;
+    } catch {
+      return null;
+    }
+  }
 
   loadState(cwd: string): RoleState {
     try {
@@ -104,9 +125,22 @@ export class RoleManager {
     }
   }
 
-  /** ROLE-1：候选发现 */
+  /** ROLE-1：候选发现。配置优先：.pi/roles.json（别名→路径）存在则以它为准；否则扫描 .pi/roles/*.md */
   listCandidates(cwd: string): RoleCandidate[] {
-    const found = new Map<string, string>(); // source -> absPath
+    const found = new Map<string, { absPath: string; alias?: string }>(); // source -> info
+
+    // 方式一：别名配置文件（用户显式声明的别名 → 定义文件映射）
+    const aliasCfg = this.loadAliasConfig(cwd);
+    if (aliasCfg) {
+      for (const [alias, relPath] of Object.entries(aliasCfg)) {
+        const abs = resolve(cwd, relPath);
+        if (!abs.startsWith(resolve(cwd))) continue; // 路径越界
+        if (!existsSync(abs) || !statSync(abs).isFile()) continue; // 目标不存在
+        found.set(relative(cwd, abs), { absPath: abs, alias });
+      }
+    }
+
+    // 方式二（回退 / 补充）：全工作区 SYSTEM.md + .pi/roles/*.md（别名=文件名）
     const walk = (dir: string, depth: number): void => {
       if (depth > MAX_DEPTH) return;
       let entries: string[];
@@ -126,38 +160,43 @@ export class RoleManager {
         }
         if (st.isDirectory()) walk(full, depth + 1);
         else if (st.isFile() && name === "SYSTEM.md") {
+          // 受管符号链接（已选角色）不作为候选——它是指针而非独立角色，避免与目标重复列出
+          try {
+            if (lstatSync(full).isSymbolicLink()) continue;
+          } catch {
+            continue;
+          }
           const rel = relative(cwd, full);
-          if (!found.has(rel)) found.set(rel, full);
+          if (!found.has(rel)) found.set(rel, { absPath: full });
         }
       }
     };
     walk(cwd, 0);
 
-    // .pi/roles/*.md（推荐集中存放处）
+    // .pi/roles/*.md（推荐集中存放处；下划线前缀为内部文件，不列为候选）
     const rolesDir = join(cwd, ".pi", "roles");
     if (existsSync(rolesDir)) {
       for (const f of readdirSync(rolesDir)) {
-        if (f.endsWith(".md")) {
-          const rel = relative(cwd, join(rolesDir, f));
-          if (!found.has(rel)) found.set(rel, join(rolesDir, f));
-        }
+        if (!f.endsWith(".md") || f.startsWith("_")) continue;
+        const rel = relative(cwd, join(rolesDir, f));
+        if (!found.has(rel)) found.set(rel, { absPath: join(rolesDir, f) });
       }
     }
 
-    const state = this.loadState(cwd);
     const current = this.currentSource(cwd);
     const out: RoleCandidate[] = [];
-    for (const [source, absPath] of [...found.entries()].sort()) {
-      const { title, preview } = readTitleAndPreview(absPath);
+    for (const [source, info] of [...found.entries()].sort()) {
+      const { title, preview } = readTitleAndPreview(info.absPath);
       let st;
       try {
-        st = statSync(absPath);
+        st = statSync(info.absPath);
       } catch {
         continue;
       }
       out.push({
         source,
-        absPath,
+        absPath: info.absPath,
+        alias: info.alias,
         title,
         preview,
         size: st.size,

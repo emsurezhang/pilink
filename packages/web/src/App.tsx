@@ -22,6 +22,23 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed]);
 
+  // L4 会话校准：WS 重连成功 / 页面回前台 / 窗口聚焦时检查历史是否落后
+  useEffect(() => {
+    if (s.conn === "online") void s.syncIfStale();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.conn]);
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void useApp.getState().syncIfStale();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, []);
+
   if (!authed) return <PairingGate />;
 
   return (

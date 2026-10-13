@@ -37,6 +37,8 @@ export interface DeviceInfo {
 export interface RoleCandidate {
   source: string;
   title: string;
+  /** 用户配置的别名（.pi/roles.json），展示优先 */
+  alias?: string;
   preview: string;
   size: number;
   mtime: number;
@@ -94,6 +96,10 @@ interface AppState {
   set: (p: Partial<AppState>) => void;
   connect: () => void;
   logout: () => void;
+  /** 会话新鲜度校准（L4）：比对最后条目 id，落后则全量重载历史 */
+  syncIfStale: () => Promise<void>;
+  /** 手动重载历史并清除冲突标记（冲突横幅按钮） */
+  reloadHistory: () => Promise<void>;
   /** 进入工作区并自动打开最近会话（无会话则新建） */
   enterWorkspace: (workspaceId: string, cwd: string) => Promise<void>;
   /** 启动恢复：默认加载最近使用的 workspace → 最近 session */
@@ -142,6 +148,16 @@ export const useApp = create<AppState>((set, get) => {
           // 空闲检测辅助：isStreaming 以 get_state 校准
         }
         set({ stream });
+        break;
+      }
+      case "gw_res": {
+        // 增量补齐失败（缓冲溢出）→ 全量历史校准（L3）
+        if (!msg.ok && msg.error?.code === "RESYNC_REQUIRED" && s.sessionKey) {
+          void get()
+            .loadHistory()
+            .then(() => set({ conflict: undefined }))
+            .catch(() => {});
+        }
         break;
       }
       case "gw_event": {
@@ -242,6 +258,21 @@ export const useApp = create<AppState>((set, get) => {
       await get().refreshWorkspaces();
       const ws = [...get().workspaces].sort((a, b) => b.lastUsedAt - a.lastUsedAt)[0];
       if (ws) await get().enterWorkspace(ws.workspaceId, ws.cwd);
+    },
+
+    syncIfStale: async () => {
+      const { sessionKey, sessionLoading, conn } = get();
+      if (!sessionKey || sessionLoading || conn !== "online") return;
+      const res = await client.rpc(sessionKey, { type: "get_entries" } as never).catch(() => null);
+      if (!res?.success) return;
+      const list = (res.data as { entries: { id: string }[] }).entries;
+      const remoteLeaf = list[list.length - 1]?.id;
+      if (remoteLeaf && remoteLeaf !== lastEntryId) await get().loadHistory();
+    },
+
+    reloadHistory: async () => {
+      await get().loadHistory();
+      set({ conflict: undefined });
     },
 
     refreshWorkspaces: async () => {
