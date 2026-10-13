@@ -1,0 +1,21 @@
+{
+  "name": "@pilink/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "pilink": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@pilink/gateway": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,0 +1,10 @@
+# frps.toml
+bindPort = 7000
+proxyBindAddr = "127.0.0.1"
+
+auth.method = "token"
+auth.token = "<与对端一致的长随机字符串>"
+
+transport.tls.force = true
+
+allowPorts = [{ single = 17788 }]

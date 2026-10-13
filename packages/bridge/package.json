@@ -1,0 +1,19 @@
+{
+  "name": "@pilink/bridge",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --clean",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^1.1.0",
+    "@types/ws": "^8.5.10",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.3"
+  }
+}

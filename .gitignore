@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+.pilink/
+coverage/
+dev-dist/
+# 证书与私钥（deploy/nginx/ 下的 *.pem 为本地 CA 签发，严禁提交）
+*.pem
+*.key
+*.srl
+*.csr

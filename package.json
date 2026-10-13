@@ -1,0 +1,19 @@
+{
+  "name": "pilink",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "dev": "pnpm --filter @pilink/gateway dev",
+    "dev:web": "pnpm --filter @pilink/web dev",
+    "reload": "node scripts/dev-reload.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^24.0.0",
+    "prettier": "^3.3.3"
+  }
+}

@@ -1,0 +1,16 @@
+# frpc.toml
+serverAddr = "101.200.193.92"
+serverPort = 7000
+
+auth.method = "token"
+auth.token = "<与对端一致的长随机字符串>"
+
+transport.tls.enable = true
+loginFailExit = false
+
+[[proxies]]
+name = "pilink-nginx"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 7787
+remotePort = 17788

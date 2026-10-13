@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.pilink.frpc</string>
+  <key>ProgramArguments</key>
+  <array>
+    <!-- 注意：launchd 不展开 ~，必须使用绝对路径 -->
+    <string>/opt/homebrew/opt/frpc/bin/frpc</string>
+    <string>-c</string>
+    <string>/Users/emsure/.pilink/frpc.toml</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/Users/emsure/.pilink/frpc.log</string>
+  <key>StandardErrorPath</key><string>/Users/emsure/.pilink/frpc.err</string>
+</dict>
+</plist>
