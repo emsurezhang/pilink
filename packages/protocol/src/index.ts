@@ -68,6 +68,8 @@ export type GatewayOp =
   | { op: "roles.select"; workspaceId: string; source: string | null; force?: boolean }
   | { op: "roles.preview"; workspaceId: string; source: string }
   | { op: "fs.search"; workspaceId: string; query: string; limit?: number }
+  | { op: "fs.list"; workspaceId: string; dir?: string }
+  | { op: "fs.read"; workspaceId: string; path: string }
   | { op: "settings.get" }
   | { op: "settings.patch"; patch: Record<string, unknown> }
   | { op: "export.download"; sessionKey: SessionKey }

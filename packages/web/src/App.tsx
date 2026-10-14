@@ -42,13 +42,13 @@ export function App() {
   if (!authed) return <PairingGate />;
 
   return (
-    <div className="app">
+    <div className="flex h-full overflow-hidden bg-bg text-fg">
       {s.tab === "settings" ? (
         <SettingsView />
       ) : (
         <>
           <Sidebar />
-          <div className="main">
+          <div className="flex min-w-0 flex-1 flex-col">
             <ConnectionBar />
             <ChatView />
           </div>

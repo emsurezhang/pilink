@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Paperclip, Square, Zap, ArrowUp, Slash, Timer } from "lucide-react";
 import { useApp } from "../lib/store";
 import { client } from "../lib/client";
 import { useLongPress } from "../lib/longpress";
@@ -6,9 +7,9 @@ import { SheetHost } from "./Sheets";
 import { CommandPalette, type PaletteHandle } from "./CommandPalette";
 
 /**
- * 输入区（§9.2 / MOB-2/3）：
+ * 输入区（Manus 风格单行 pill）：
+ * - 左侧 / 命令入口，右侧附件 + 发送；发送键运行中变为 Steer
  * - 回车默认换行，显式发送键；外接键盘 Enter 发送
- * - `/` 命令面板 · `@` 文件引用 · `!` bash（`!!` 不进上下文）
  * - 运行中发送：长按发送键 → Steer / Follow-up（CMD-7）
  * - 草稿按会话保存
  */
@@ -17,7 +18,6 @@ export function Composer() {
   const [text, setText] = useState("");
   const [images, setImages] = useState<{ data: string; mimeType: string }[]>([]);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  /** 面板搜索词（不含前导 /），随输入框内容同步 */
   const [paletteQuery, setPaletteQuery] = useState("");
   const paletteRef = useRef<PaletteHandle>(null);
   const [filePanel, setFilePanel] = useState<string | null>(null);
@@ -27,6 +27,7 @@ export function Composer() {
   const [pendingQueue, setPendingQueue] = useState<Array<{ id: string; text: string; kind: "steer" | "follow-up" }>>([]);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const draftKey = `pilink.draft.${s.sessionKey ?? "none"}`;
 
   // 草稿自动保存
@@ -94,22 +95,17 @@ export function Composer() {
   });
 
   function onKeyDown(e: React.KeyboardEvent) {
-    // 命令面板打开时：↑↓ 选择 / Enter·Tab 补全 / Esc 关闭（消费事件，不再触发发送）
+    // 命令面板打开时：↑↓ 选择 / Enter·Tab 补全 / Esc 关闭
     if (paletteOpen && paletteRef.current?.handleKeyDown(e)) return;
-    // 外接键盘：Enter 发送 / Shift+Enter 换行（触屏软键盘回车默认换行）
-    if (e.key === "Enter" && !e.shiftKey && e.nativeEvent instanceof KeyboardEvent && !("ontouchstart" in window && e.nativeEvent.keyCode === 0)) {
-      // 简单启发：桌面环境 Enter 发送
-      if (matchMedia("(pointer: fine)").matches) {
-        e.preventDefault();
-        void send();
-      }
+    if (e.key === "Enter" && !e.shiftKey && matchMedia("(pointer: fine)").matches) {
+      e.preventDefault();
+      void send();
     }
     if (e.key === "Escape" && s.isStreaming) void s.abort();
   }
 
   function onChange(v: string) {
     setText(v);
-    // 以 / 开头且尚未带参数（空格/换行）→ 打开面板并继承已输入内容
     if (v.startsWith("/") && !/[\s]/.test(v.slice(1))) {
       setPaletteOpen(true);
       setPaletteQuery(v.slice(1));
@@ -139,50 +135,48 @@ export function Composer() {
     }
   }
 
+  const queueChips = [
+    ...s.queue.steering.map((t) => ({ t, k: "steer" as const })),
+    ...s.queue.followUp.map((t) => ({ t, k: "follow-up" as const })),
+    ...pendingQueue.map((item) => ({ t: item.text, k: item.kind })),
+  ];
+
   return (
-    <div className="composer">
-      {(s.queue.steering.length > 0 || s.queue.followUp.length > 0 || pendingQueue.length > 0) && (
-        <div className="queue-chips">
-          {[
-            ...s.queue.steering.map((t) => ({ t, k: "steer" })),
-            ...s.queue.followUp.map((t) => ({ t, k: "follow-up" })),
-            ...pendingQueue.map((item) => ({ t: item.text, k: item.kind })),
-          ].map((q, i) => (
-            <span key={`${q.k}-${q.t}-${i}`} className={`chip ${q.k}`}>
-              {q.k === "steer" ? "↯" : "⏳"} {q.t.slice(0, 24)}
+    <div ref={wrapRef} className="relative border-t border-line bg-s1 px-3 pt-2" style={{ paddingBottom: "calc(8px + var(--sab))" }}>
+      {queueChips.length > 0 && (
+        <div className="mb-1.5 flex gap-1.5 overflow-x-auto pb-0.5 text-xs">
+          {queueChips.map((q, i) => (
+            <span key={`${q.k}-${q.t}-${i}`} className={`chip shrink-0 ${q.k === "steer" ? "text-warn" : "text-accent"}`}>
+              {q.k === "steer" ? <Zap size={11} /> : <Timer size={11} />}
+              {q.t.slice(0, 24)}
             </span>
           ))}
-          <button className="mini" onClick={() => void s.clearQueue()}>
-            清空队列
+          <button className="btn-ghost btn shrink-0 !px-2 !py-0.5 text-xs" onClick={() => void s.clearQueue()}>
+            清空
           </button>
         </div>
       )}
+
       {images.length > 0 && (
-        <div className="attach-row">
+        <div className="mb-1.5 flex gap-1.5">
           {images.map((img, i) => (
-            <img key={i} src={`data:${img.mimeType};base64,${img.data}`} onClick={() => setImages(images.filter((_, j) => j !== i))} alt="附件（点击移除）" />
+            <img
+              key={i}
+              className="h-12 rounded-lg border border-line"
+              src={`data:${img.mimeType};base64,${img.data}`}
+              onClick={() => setImages(images.filter((_, j) => j !== i))}
+              alt="附件（点击移除）"
+            />
           ))}
         </div>
       )}
+
       {filePanel !== null && <FilePanel query={filePanel} onPick={insertFile} onClose={() => setFilePanel(null)} />}
-      <div className="quick-bar">
-        <button title="切换模型 (/model)" onClick={() => SheetHost.open("model")}>𝑀</button>
-        <button title="思考等级与显示方式 (/thinking)" onClick={() => SheetHost.open("thinking")}>💭</button>
-        <button title="压缩上下文 (/compact)" onClick={() => SheetHost.open("compact")}>🗜</button>
-        <button title="新建会话 (/new)" onClick={() => void SheetHost.runCommandText("/new")}>✚</button>
-        <button title="会话树 (/tree)" onClick={() => SheetHost.open("tree")}>⑂</button>
-        <button title="图片附件（相机/相册）" onClick={() => fileRef.current?.click()}>📎</button>
-        <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => void attachFiles(e.target.files)} />
-        <span className="spacer" />
-        {s.isStreaming && (
-          <button className="abort" title="中止（先清队列，可恢复排队文本）" onClick={() => void handleAbort()}>
-            ■ 中止
-          </button>
-        )}
-      </div>
-      <div className="input-row">
+
+      {/* 输入 pill */}
+      <div className="flex items-end gap-1 rounded-2xl border border-line bg-bg px-2 py-1.5 transition-colors focus-within:border-accent">
         <button
-          className="slash"
+          className="icon-btn"
           title="命令面板：/ 命令 · @ 文件引用 · ! bash"
           onClick={() => {
             setText("/");
@@ -191,25 +185,38 @@ export function Composer() {
             taRef.current?.focus();
           }}
         >
-          /
+          <Slash size={16} />
         </button>
         <textarea
           ref={taRef}
           rows={Math.min(6, Math.max(1, text.split("\n").length))}
+          className="max-h-40 min-h-[32px] flex-1 resize-none bg-transparent text-[15px] outline-none"
           placeholder={s.isStreaming ? "运行中：点发送 = Steer，长按发送 = 排队选项" : "输入消息，/ 命令 · @ 文件 · ! bash"}
           value={text}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
           enterKeyHint="enter"
         />
+        <button className="icon-btn" title="图片附件（相机/相册）" onClick={() => fileRef.current?.click()}>
+          <Paperclip size={16} />
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => void attachFiles(e.target.files)} />
         {sendMenu ? (
           <div className="send-menu">
-            <button onClick={() => void send("steer")}>↯ Steer（插队）</button>
-            <button onClick={() => void send("followUp")}>⏳ Follow-up（排队）</button>
+            <button onClick={() => void send("steer")}>
+              <Zap size={13} className="mr-1 inline text-warn" />
+              Steer（插队）
+            </button>
+            <button onClick={() => void send("followUp")}>
+              <Timer size={13} className="mr-1 inline text-accent" />
+              Follow-up（排队）
+            </button>
           </div>
         ) : (
           <button
-            className="send"
+            className={`flex size-8 shrink-0 items-center justify-center rounded-full p-0 text-white transition-all ${
+              busy ? "bg-line2" : s.isStreaming && !isBash && !isCommand ? "bg-warn" : "bg-accent hover:brightness-105"
+            }`}
             disabled={busy || !text.trim() || !s.sessionKey}
             onClick={() => void send()}
             {...sendLp}
@@ -219,11 +226,30 @@ export function Composer() {
                 : "发送（长按：Steer / Follow-up）"
             }
           >
-            {busy ? "…" : s.isStreaming && !isBash && !isCommand ? "↯" : "➤"}
+            {busy ? (
+              <span className="size-3 animate-spin rounded-full border-2 border-bg/40 border-t-bg" />
+            ) : s.isStreaming && !isBash && !isCommand ? (
+              <Zap size={15} />
+            ) : (
+              <ArrowUp size={16} />
+            )}
           </button>
         )}
       </div>
-      {error && <div className="error small">{error}</div>}
+
+      {s.isStreaming && (
+        <button
+          className="btn-ghost btn mx-auto mt-1 flex !px-2 !py-0.5 text-xs text-danger"
+          title="中止（先清队列，可恢复排队文本）"
+          onClick={() => void handleAbort()}
+        >
+          <Square size={11} />
+          中止
+        </button>
+      )}
+
+      {error && <div className="mt-1 text-xs text-danger">{error}</div>}
+
       <CommandPalette
         ref={paletteRef}
         open={paletteOpen}

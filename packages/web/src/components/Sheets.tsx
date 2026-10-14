@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { useApp } from "../lib/store";
 import { client } from "../lib/client";
 import { forkFrom, setModel, setThinkingLevel } from "../lib/commands";
+import { FileBrowser } from "./FileBrowser";
 
-export type SheetName = "model" | "thinking" | "session" | "role" | "fork" | "tree" | "compact";
+export type SheetName = "model" | "thinking" | "session" | "role" | "fork" | "tree" | "compact" | "files";
 
-const VALID_SHEETS = new Set<string>(["model", "thinking", "session", "role", "fork", "tree", "compact"]);
+const VALID_SHEETS = new Set<string>(["model", "thinking", "session", "role", "fork", "tree", "compact", "files"]);
 
 /** 极简 Sheet 管理器（命令面板与各处共用） */
 type Listener = (name: SheetName | null, arg?: string) => void;
@@ -48,7 +49,7 @@ export function SheetRoot() {
   const close = () => SheetHost.close();
   return (
     <div className="sheet-backdrop" onClick={close}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet-panel" onClick={(e) => e.stopPropagation()}>
         {sheet === "model" && <ModelSheet close={close} />}
         {sheet === "thinking" && <ThinkingSheet close={close} />}
         {sheet === "session" && <StatsSheet close={close} />}
@@ -56,6 +57,7 @@ export function SheetRoot() {
         {sheet === "fork" && <ForkSheet close={close} entryId={arg} />}
         {sheet === "tree" && <TreeSheet close={close} />}
         {sheet === "compact" && <CompactSheet close={close} />}
+        {sheet === "files" && <FileBrowser close={close} />}
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useApp } from "../lib/store";
 import { client } from "../lib/client";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function SettingsView() {
   const s = useApp();
@@ -21,14 +23,16 @@ export function SettingsView() {
   }
 
   return (
-    <div className="settings-page">
-      <header className="settings-head">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <header className="flex items-center gap-2 border-b border-line bg-s1 px-3 py-2.5">
         <button className="icon-btn" onClick={() => s.set({ tab: "chat" })}>
-          ← 返回
+          <ArrowLeft size={17} />
         </button>
-        <strong>设置</strong>
+        <strong className="text-[15px]">设置</strong>
+        <span className="spacer" />
+        <ThemeToggle />
       </header>
-      <div className="settings">
+      <div className="settings flex-1">
         <h3>设备（上限见 Gateway 配置，默认 5）</h3>
       <div className="sheet-list">
         {s.devices.map((d) => (

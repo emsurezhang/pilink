@@ -181,9 +181,9 @@ export const CommandPalette = forwardRef<PaletteHandle, { open: boolean; query: 
     if (!open || flat.length === 0) return null;
 
     return (
-      <div className="cmd-popup">
-        {notice && <div className="notice cmd-popup-notice">{notice}</div>}
-        <div className="palette-list" ref={listRef}>
+      <div className="absolute inset-x-2 bottom-full z-50 mb-2 flex max-h-[min(320px,42vh)] flex-col gap-0.5 overflow-y-auto rounded-xl border border-line bg-bg p-1.5 shadow-2xl">
+        {notice && <div className="rounded-md bg-warn/10 px-2.5 py-1.5 text-xs text-warn">{notice}</div>}
+        <div ref={listRef}>
           {rows.map((row) =>
             row.kind === "header" ? (
               <div key={`h-${row.label}`} className="group-title">
@@ -192,13 +192,13 @@ export const CommandPalette = forwardRef<PaletteHandle, { open: boolean; query: 
             ) : (
               <button
                 key={row.item.name}
-                className={`palette-item ${row.index === active ? "active" : ""}`}
+                className={`row-item gap-2.5 ${row.index === active ? "bg-s2" : ""}`}
                 onMouseEnter={() => setActive(row.index)}
                 onClick={() => void pick(row.item)}
               >
-                <span className="cmd-name">/{row.item.name}</span>
-                {row.item.argHint && <span className="dim small"> {row.item.argHint}</span>}
-                <span className="dim">{row.item.description}</span>
+                <span className="shrink-0 font-mono text-[13px] text-accent">/{row.item.name}</span>
+                {row.item.argHint && <span className="shrink-0 text-xs text-dim">{row.item.argHint}</span>}
+                <span className="min-w-0 flex-1 truncate text-xs text-dim">{row.item.description}</span>
               </button>
             ),
           )}

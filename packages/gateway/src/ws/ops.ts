@@ -17,6 +17,7 @@ import type { BridgeHub } from "../driver/attach.js";
 import { WorkspaceRegistry, decodeWorkspaceId, encodeWorkspaceId, piDirNameForCwd } from "../workspace/registry.js";
 import { listSessionsForCwd } from "../workspace/sessions.js";
 import { searchFiles } from "../workspace/fssearch.js";
+import { listDir, readText } from "../workspace/fsbrowser.js";
 import { RoleManager } from "../role/manager.js";
 import { setKeepAwake, isKeepAwake } from "../system/keepawake.js";
 import type { PushManager } from "../push/push.js";
@@ -133,6 +134,20 @@ export class Ops {
         const cwd = decodeWorkspaceId(op.workspaceId);
         if (!this.workspaces.isAllowed(cwd)) throw new DriverError("WS_DENIED", "工作区不在白名单");
         return { files: searchFiles(cwd, op.query, op.limit ?? 20) };
+      }
+
+      case "fs.list": {
+        // 文件浏览：目录列举（隐藏文件跳过，目录优先）
+        const cwd = decodeWorkspaceId(op.workspaceId);
+        if (!this.workspaces.isAllowed(cwd)) throw new DriverError("WS_DENIED", "工作区不在白名单");
+        return { entries: listDir(cwd, String(op.dir ?? "")) };
+      }
+
+      case "fs.read": {
+        // 文件浏览：读取文本文件（UTF-8，512KB 截断；路径越界在 fsbrowser 内防护）
+        const cwd = decodeWorkspaceId(op.workspaceId);
+        if (!this.workspaces.isAllowed(cwd)) throw new DriverError("WS_DENIED", "工作区不在白名单");
+        return readText(cwd, String(op.path ?? ""));
       }
 
       case "settings.get":
